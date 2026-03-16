@@ -1,0 +1,259 @@
+#include<iostream>
+#include<fstream>
+#include<string>
+using namespace std;
+
+/*--------------------------------------------------
+Template function to validate year
+--------------------------------------------------*/
+template <typename T>
+bool validateYear(T year)
+{
+    if(year >= 2000 && year <= 2026)   // simple validation
+        return true;
+    else
+        return false;
+}
+
+/*--------------------------------------------------
+Abstract Base Class
+--------------------------------------------------*/
+class Vehicle
+{
+protected:
+    string regNo;
+    string modelName;
+    string manufacturer;
+    int year;
+
+public:
+
+    // static member to count vehicles
+    static int count;
+
+    Vehicle(){}
+
+    // constructor
+    Vehicle(string r,string m,string manu,int y)
+    {
+        // exception handling
+        if(r == "")
+            throw runtime_error("Registration number cannot be empty");
+
+        if(!validateYear(y))
+            throw runtime_error("Invalid Year");
+
+        regNo = r;
+        modelName = m;
+        manufacturer = manu;
+        year = y;
+
+        count++;  // increase vehicle count
+    }
+
+    // pure virtual function
+    virtual void displayInfo() = 0;
+
+    // inline function to format vehicle display
+    inline string formatInfo()
+    {
+        return "RegNo: " + regNo +
+               ", Model: " + modelName +
+               ", Manufacturer: " + manufacturer +
+               ", Year: " + to_string(year);
+    }
+
+    // function for writing object data
+    virtual void writeToFile(ofstream &fout) = 0;
+};
+
+// initialize static variable
+int Vehicle::count = 0;
+
+
+/*--------------------------------------------------
+Derived Class : Car
+--------------------------------------------------*/
+class Car : public Vehicle
+{
+    string fuelType;
+
+public:
+
+    Car(string r,string m,string manu,int y,string fuel)
+        : Vehicle(r,m,manu,y)
+    {
+        fuelType = fuel;
+    }
+
+    // overriding virtual function
+    void displayInfo()
+    {
+        cout << formatInfo()
+             << ", FuelType: " << fuelType << endl;
+    }
+
+    // writing car data into file
+    void writeToFile(ofstream &fout)
+    {
+        fout << "C "
+             << regNo << " "
+             << modelName << " "
+             << manufacturer << " "
+             << year << " "
+             << fuelType << endl;
+    }
+};
+
+
+/*--------------------------------------------------
+Derived Class : Bike
+--------------------------------------------------*/
+class Bike : public Vehicle
+{
+    string engineCapacity;
+
+public:
+
+    Bike(string r,string m,string manu,int y,string eng)
+        : Vehicle(r,m,manu,y)
+    {
+        engineCapacity = eng;
+    }
+
+    // overriding virtual function
+    void displayInfo()
+    {
+        cout << formatInfo()
+             << ", EngineCapacity: " << engineCapacity << endl;
+    }
+
+    // writing bike data into file
+    void writeToFile(ofstream &fout)
+    {
+        fout << "B "
+             << regNo << " "
+             << modelName << " "
+             << manufacturer << " "
+             << year << " "
+             << engineCapacity << endl;
+    }
+};
+
+
+/*--------------------------------------------------
+Main Function
+--------------------------------------------------*/
+int main()
+{
+    int n;
+    cout<<"Enter number of vehicles: ";
+    cin>>n;
+
+    // open file for writing
+    ofstream fout("vehicle.dat");
+
+    for(int i=0;i<n;i++)
+    {
+        char type;
+
+        cout<<"Enter type of vehicle (C for Car, B for Bike): ";
+        cin>>type;
+
+        string reg,model,manu;
+        int year;
+
+        cout<<"Enter Registration Number: ";
+        cin>>reg;
+
+        cout<<"Enter Model Name: ";
+        cin>>model;
+
+        cout<<"Enter Manufacturer: ";
+        cin>>manu;
+
+        cout<<"Enter Year: ";
+        cin>>year;
+
+        try
+        {
+            Vehicle* v;   // base class pointer
+
+            if(type=='C')
+            {
+                string fuel;
+
+                cout<<"Enter Fuel Type: ";
+                cin>>fuel;
+
+                // runtime polymorphism
+                v = new Car(reg,model,manu,year,fuel);
+            }
+            else
+            {
+                string engine;
+
+                cout<<"Enter Engine Capacity: ";
+                cin>>engine;
+
+                // runtime polymorphism
+                v = new Bike(reg,model,manu,year,engine);
+            }
+
+            // display vehicle info
+            v->displayInfo();
+
+            // store in file
+            v->writeToFile(fout);
+
+            delete v;
+        }
+        catch(exception &e)
+        {
+            cout<<"Error: "<<e.what()<<endl;
+            i--;   // retry input
+        }
+    }
+
+    fout.close();
+
+    /*------------------------------------------
+    Reading data from file
+    ------------------------------------------*/
+    cout<<"\nReading from file\n";
+
+    ifstream fin("vehicle.dat");
+
+    char type;
+    string reg,model,manu,extra;
+    int year;
+
+    while(fin >> type >> reg >> model >> manu >> year >> extra)
+    {
+        if(type=='C')
+        {
+            cout<<"RegNo: "<<reg
+                <<", Model: "<<model
+                <<", Manufacturer: "<<manu
+                <<", Year: "<<year
+                <<", FuelType: "<<extra
+                <<endl;
+        }
+        else
+        {
+            cout<<"RegNo: "<<reg
+                <<", Model: "<<model
+                <<", Manufacturer: "<<manu
+                <<", Year: "<<year
+                <<", EngineCapacity: "<<extra
+                <<endl;
+        }
+    }
+
+    cout<<"---------------------------------\n";
+    cout<<"Total Vehicles stored: "<<Vehicle::count<<endl;
+
+    fin.close();
+
+    return 0;
+}
